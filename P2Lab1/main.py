@@ -3,6 +3,8 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import pymysql.cursors
 
+
+# Установка связи между Python и MySQL
 connection: pymysql.connect = pymysql.connect(host="localhost",
                                               user="root",
                                               password="qwerty",
@@ -17,7 +19,6 @@ with connection.cursor() as cursor:
     cursor.execute(query)
     rows = cursor.fetchall()
     df: pd.DataFrame = pd.DataFrame(rows).reset_index(drop=True)
-
     print("Все данные таблицы 'administration'")
     print(df)
 
@@ -68,9 +69,12 @@ with connection.cursor() as cursor:
     rows = cursor.fetchall()
 
     df: pd.DataFrame = pd.DataFrame(rows)
+
     df['date_of_birth'] = pd.to_datetime(df['date_of_birth'])
     df['age'] = (datetime.today().date().year - df['date_of_birth'].dt.year)
 
-    df.plot(x="date_of_birth", y="age", kind="hist")
-    plt.title("Количество людей по возрасту")
+    df.plot(x="age", y="age", kind="scatter")
+    plt.xlabel("Возраст (лет)")
+    plt.ylabel("Возраст (лет)")
+    plt.title("Распределение людей по возрасту")
     plt.savefig("Графики/plot.png")
