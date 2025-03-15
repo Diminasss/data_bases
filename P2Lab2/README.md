@@ -40,8 +40,8 @@ _(Полный SQL-код доступен в файле .sql.)_
 
 ## 📷 Скриншоты
 Схема базы данных в Access и MySQL Workbench:
-- ![Access Schema](/screenshots/access_schema.png)
-- ![MySQL Schema](/screenshots/mysql_schema.png)
+- ![Access Schema](./screenshots/access_schema.png)
+- ![MySQL Schema](./screenshots/mysql_schema.png)
 
 ## 🛠 Используемые технологии
 - **Microsoft Access** – исходная база данных
