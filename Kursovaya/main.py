@@ -12,6 +12,7 @@ import pymysql
 from decimal import Decimal
 from dotenv import load_dotenv
 from os import getenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ load_dotenv()
 class TrainStationApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Интерфейс базы данных: Железнодорожная станция")
+        self.setWindowTitle("Железнодорожная станция")
         self.setGeometry(100, 100, 1000, 700)
 
         self.tabs = QTabWidget()
@@ -29,7 +30,7 @@ class TrainStationApp(QWidget):
 
         self.init_procedure_tab()
         self.init_table_tab()
-        self.init_info_tab()
+        # self.init_info_tab()
         self.init_charts_tab()  # новая вкладка диаграмм
 
     def init_charts_tab(self):
@@ -207,24 +208,52 @@ class TrainStationApp(QWidget):
 
     def execute_procedure(self):
         procedure = self.procedure_combo.currentText()
+        print(self.params_widgets.items())
         params = []
 
         for key, widget in self.params_widgets.items():
+            print(f"Обработка параметра: {key}, тип: {type(widget)}")  # 👈 отладка
+
             if isinstance(widget, QDateEdit):
-                params.append(widget.date().toPyDate().strftime("%Y-%m-%d"))
-            else:
+                val = widget.date().toPyDate()
+            elif isinstance(widget, QComboBox):
+                val = widget.currentText().strip()
+            elif isinstance(widget, QLineEdit):
                 val = widget.text().strip()
+                print(f"{key} = {val}")  # 👈 отладка
                 if not val:
                     QMessageBox.warning(self, "Ошибка ввода", f"Поле '{key}' не должно быть пустым.")
                     return
-                params.append(val)
+
+                if key in ['start_date', 'end_date']:
+                    try:
+                        val = datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
+                        print(f"{key} приведён к datetime: {val}")  # 👈 отладка
+                    except ValueError:
+                        QMessageBox.warning(self, "Ошибка формата даты",
+                                            f"Поле '{key}' должно быть в формате ГГГГ-ММ-ДД ЧЧ:ММ:СС")
+                        return
+                elif key == 'route_flight_id':
+                    if not val.isdigit():
+                        QMessageBox.warning(self, "Ошибка ввода", f"Поле '{key}' должно быть числом.")
+                        return
+                    val = int(val)
+                    print(f"{key} приведён к int: {val}")  # 👈 отладка
+            else:
+                QMessageBox.critical(self, "Ошибка", f"Неизвестный тип виджета для параметра '{key}'")
+                return
+
+            params.append(val)
+
+        print("Сформированные параметры:", params)
+
 
         try:
             conn = pymysql.connect(
-                host="localhost",
-                user="root",
-                password="qwerty",
-                db="train_station",
+                host=getenv('HOST'),
+                user=getenv('USER'),
+                password=getenv('PASSWORD'),
+                db=getenv('DB'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
@@ -278,8 +307,8 @@ class TrainStationApp(QWidget):
                 "min_avg_salary": "float"
             },
             "GetLocomotiveStatistics": {
-                "start_date": "datetime",
-                "end_date": "datetime",
+                "start_date": "date",
+                "end_date": "date",
                 "repair_count": "int"
             },
             "GetAvgTickets": {
@@ -353,10 +382,10 @@ class TrainStationApp(QWidget):
 
         try:
             conn = pymysql.connect(
-                host="localhost",
-                user="root",
-                password="qwerty",
-                db="train_station",
+                host=getenv('HOST'),
+                user=getenv('USER'),
+                password=getenv('PASSWORD'),
+                db=getenv('DB'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
