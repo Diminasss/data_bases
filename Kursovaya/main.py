@@ -20,6 +20,24 @@ load_dotenv()
 class TrainStationApp(QWidget):
     def __init__(self):
         super().__init__()
+        self.form_layout = None
+        self.params_widgets = None
+        self.execute_button = None
+        self.proc_table_result = None
+        self.table_tab = None
+        self.table_combo = None
+        self.tables = None
+        self.show_table_button = None
+        self.table_result = None
+        self.procedures = None
+        self.procedure_combo = None
+        self.procedure_label = None
+        self.proc_tab = None
+        self.canvas1 = None
+        self.canvas2 = None
+        self.canvas3 = None
+        self.chart_button = None
+        self.charts_tab = None
         self.setWindowTitle("Железнодорожная станция")
         self.setGeometry(100, 100, 1000, 700)
 
@@ -30,7 +48,6 @@ class TrainStationApp(QWidget):
 
         self.init_procedure_tab()
         self.init_table_tab()
-        # self.init_info_tab()
         self.init_charts_tab()  # новая вкладка диаграмм
 
     def init_charts_tab(self):
@@ -201,33 +218,11 @@ class TrainStationApp(QWidget):
         self.table_tab.setLayout(table_layout)
         self.tabs.addTab(self.table_tab, "Просмотр таблиц")
 
-    def init_info_tab(self):
-        self.info_tab = QWidget()
-        info_layout = QVBoxLayout()
-
-        info_text = (
-            "Информация:\n\n"
-            "— Для просмотра таблиц выберите нужную и нажмите 'Показать'.\n"
-            "— Для вызова процедуры заполните параметры (если есть) и нажмите 'Выполнить процедуру'.\n"
-            "— Формат даты: ГГГГ-ММ-ДД.\n"
-            "— Все числа вводятся как целые.\n"
-        )
-
-        info_box = QTextEdit()
-        info_box.setPlainText(info_text)
-        info_box.setReadOnly(True)
-        info_layout.addWidget(info_box)
-
-        self.info_tab.setLayout(info_layout)
-        self.tabs.addTab(self.info_tab, "Информация")
-
     def execute_procedure(self):
         procedure = self.procedure_combo.currentText()
-        print(self.params_widgets.items())
         params = []
 
         for key, widget in self.params_widgets.items():
-            print(f"Обработка параметра: {key}, тип: {type(widget)}")  # 👈 отладка
 
             if isinstance(widget, QDateEdit):
                 val = widget.date().toPyDate()
@@ -235,7 +230,6 @@ class TrainStationApp(QWidget):
                 val = widget.currentText().strip()
             elif isinstance(widget, QLineEdit):
                 val = widget.text().strip()
-                print(f"{key} = {val}")  # 👈 отладка
                 if not val:
                     QMessageBox.warning(self, "Ошибка ввода", f"Поле '{key}' не должно быть пустым.")
                     return
@@ -243,7 +237,6 @@ class TrainStationApp(QWidget):
                 if key in ['start_date', 'end_date']:
                     try:
                         val = datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
-                        print(f"{key} приведён к datetime: {val}")  # 👈 отладка
                     except ValueError:
                         QMessageBox.warning(self, "Ошибка формата даты",
                                             f"Поле '{key}' должно быть в формате ГГГГ-ММ-ДД ЧЧ:ММ:СС")
@@ -253,14 +246,11 @@ class TrainStationApp(QWidget):
                         QMessageBox.warning(self, "Ошибка ввода", f"Поле '{key}' должно быть числом.")
                         return
                     val = int(val)
-                    print(f"{key} приведён к int: {val}")  # 👈 отладка
             else:
                 QMessageBox.critical(self, "Ошибка", f"Неизвестный тип виджета для параметра '{key}'")
                 return
 
             params.append(val)
-
-        print("Сформированные параметры:", params)
 
         try:
             conn = pymysql.connect(
