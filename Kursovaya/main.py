@@ -1,8 +1,7 @@
-import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QTabWidget, QLabel, QPushButton,
     QComboBox, QTextEdit, QFormLayout, QLineEdit, QDateEdit, QMessageBox,
-    QTableWidget, QTableWidgetItem
+    QTableWidget, QTableWidgetItem, QScrollArea, QSizePolicy
 )
 from PyQt5.QtCore import QDate
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -13,6 +12,7 @@ from decimal import Decimal
 from dotenv import load_dotenv
 from os import getenv
 from datetime import datetime
+import sys
 
 load_dotenv()
 
@@ -41,17 +41,32 @@ class TrainStationApp(QWidget):
         self.chart_button.clicked.connect(self.build_charts)
         layout.addWidget(self.chart_button)
 
-        self.canvas1 = FigureCanvas(Figure(figsize=(5, 3)))
-        self.canvas2 = FigureCanvas(Figure(figsize=(5, 3)))
-        self.canvas3 = FigureCanvas(Figure(figsize=(5, 3)))
+        # Обертка со скроллингом
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
 
-        layout.addWidget(QLabel("Средняя зарплата по отделам (столбчатая):"))
-        layout.addWidget(self.canvas1)
-        layout.addWidget(QLabel("Количество работников по отделам (круговая):"))
-        layout.addWidget(self.canvas2)
-        layout.addWidget(QLabel("Стоимость ремонта по датам (линейная):"))
-        layout.addWidget(self.canvas3)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
 
+        # Создаем канвасы с нормальным фиксированным размером
+        self.canvas1 = FigureCanvas(Figure(figsize=(8, 4)))
+        self.canvas2 = FigureCanvas(Figure(figsize=(8, 4)))
+        self.canvas3 = FigureCanvas(Figure(figsize=(8, 4)))
+
+        for canvas in [self.canvas1, self.canvas2, self.canvas3]:
+            canvas.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            canvas.setMinimumSize(800, 400)  # Задать достаточную высоту
+
+        scroll_layout.addWidget(QLabel("Средняя зарплата по отделам (столбчатая):"))
+        scroll_layout.addWidget(self.canvas1)
+        scroll_layout.addWidget(QLabel("Количество работников по отделам (круговая):"))
+        scroll_layout.addWidget(self.canvas2)
+        scroll_layout.addWidget(QLabel("Стоимость ремонта по датам (линейная):"))
+        scroll_layout.addWidget(self.canvas3)
+
+        scroll_area.setWidget(scroll_content)
+
+        layout.addWidget(scroll_area)
         self.charts_tab.setLayout(layout)
         self.tabs.addTab(self.charts_tab, "Диаграммы")
 
@@ -246,7 +261,6 @@ class TrainStationApp(QWidget):
             params.append(val)
 
         print("Сформированные параметры:", params)
-
 
         try:
             conn = pymysql.connect(
