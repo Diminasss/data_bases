@@ -23,7 +23,6 @@ class LoginWindow(QWidget):
         self.main_app = None
         self.setWindowTitle("Вход в систему")
         self.setGeometry(150, 150, 300, 200)
-
         layout = QFormLayout()
 
         self.password_input = QLineEdit()
@@ -39,8 +38,8 @@ class LoginWindow(QWidget):
         self.login_button = QPushButton("Войти")
         self.login_button.clicked.connect(self.handle_login)
 
-        layout.addRow("Пароль:", self.password_input)
         layout.addRow("Роль:", self.username_combo)
+        layout.addRow("Пароль:", self.password_input)
         layout.addRow(self.login_button)
 
         self.setLayout(layout)
@@ -55,14 +54,28 @@ class LoginWindow(QWidget):
         if not username and not password:
             QMessageBox.warning(self, "Ошибка входа", "Пожалуйста, заполните все поля.")
             return
+        try:
 
-        # Здесь можно вставить вашу проверку логина и пароля
+            self.login_data = {
+                "username": username,
+                "password": password,
+            }
+            # Тестовое соединение для проверки пароля
+            conn = pymysql.connect(
+                host=getenv('HOST'),
+                user=self.login_data.get('username'),
+                password=self.login_data.get('password'),
+                db=getenv('DB'),
+                charset='utf8mb4',
+                port=int(getenv('PORT')),
+                cursorclass=pymysql.cursors.DictCursor
+            )
+            conn.close()
 
-        self.login_data = {
-            "username": username,
-            "password": password,
-        }
-        self.accept_login()
+        except pymysql.err.OperationalError:
+            QMessageBox.critical(self, "Ошибка", "Отсутствует соединение с БД, либо неверный пароль.")
+        else:
+            self.accept_login()
 
     def accept_login(self):
         self.close()
@@ -100,9 +113,10 @@ class TrainStationApp(QWidget):
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
-        self.init_procedure_tab()
         self.init_table_tab()
-        self.init_charts_tab()  # новая вкладка диаграмм
+        self.init_procedure_tab()
+        if self.login_data['username'] == "administrator" or self.login_data['username'] == 'hr_director':
+            self.init_charts_tab()
 
     def init_charts_tab(self):
         self.charts_tab = QWidget()
@@ -149,6 +163,7 @@ class TrainStationApp(QWidget):
                 password=self.login_data.get('password'),
                 db=getenv('DB'),
                 charset='utf8mb4',
+                port=int(getenv('PORT')),
                 cursorclass=pymysql.cursors.DictCursor
             )
             cursor = conn.cursor()
@@ -214,18 +229,49 @@ class TrainStationApp(QWidget):
         proc_layout.addWidget(self.procedure_label)
 
         self.procedure_combo = QComboBox()
-        self.procedures = [
-            "CheckAndUpdateMedicalExaminations",
-            "GetAvgSalaryByDepartment",
-            "GetAvgTickets",
-            "GetEmployeeStatistics",
-            "GetLocomotiveDrivers",
-            "GetLocomotiveStatistics",
-            "GetPassengerStatsByDate",
-            "GetRoutesByCategoryAndFlightDirection",
-            "GetStationsByScheduleId",
-            "GetUnredeemedTicketsByFlight"
-        ]
+        if self.login_data.get('username') == 'administrator' or self.login_data.get('username') == 'hr_director':
+            self.procedures = [
+                "CheckAndUpdateMedicalExaminations",
+                "GetAvgSalaryByDepartment",
+                "GetAvgTickets",
+                "GetEmployeeStatistics",
+                "GetLocomotiveDrivers",
+                "GetLocomotiveStatistics",
+                "GetPassengerStatsByDate",
+                "GetRoutesByCategoryAndFlightDirection",
+                "GetStationsByScheduleId",
+                "GetUnredeemedTicketsByFlight"
+            ]
+        elif self.login_data.get('username') == 'main_dispatcher':
+            self.procedures = [
+                "GetAvgTickets",
+                "GetRoutesByCategoryAndFlightDirection",
+                "GetPassengerStatsByDate",
+                "GetUnredeemedTicketsByFlight",
+                "GetStationsByScheduleId",
+            ]
+        elif self.login_data.get('username') == 'repair_master':
+            self.procedures = [
+                "GetLocomotiveStatistics",
+                "GetStationsByScheduleId",
+            ]
+        elif self.login_data.get('username') == 'cashier':
+            self.procedures = [
+                "GetStationsByScheduleId",
+                "GetAvgTickets",
+                "GetRoutesByCategoryAndFlightDirection",
+                "GetUnredeemedTicketsByFlight",
+            ]
+        elif self.login_data.get('username') == 'medical_center':
+            self.procedures = [
+                "CheckAndUpdateMedicalExaminations",
+            ]
+        elif self.login_data.get('username') == 'passanger':
+            self.procedures = [
+                "GetUnredeemedTicketsByFlight",
+                "GetStationsByScheduleId",
+                "GetRoutesByCategoryAndFlightDirection"
+            ]
         self.procedure_combo.addItems(self.procedures)
         self.procedure_combo.currentTextChanged.connect(self.update_parameters_form)
         proc_layout.addWidget(self.procedure_combo)
@@ -252,12 +298,37 @@ class TrainStationApp(QWidget):
         table_layout = QVBoxLayout()
 
         self.table_combo = QComboBox()
-        self.tables = [
-            "departments", "employees", "inspection", "locomotives",
-            "medical_examinations", "passengers", "repair", "routes",
-            "salary", "schedule", "stations", "teams",
-            "tickets", "trains"
-        ]
+
+        if self.login_data['username'] == 'administrator':
+            self.tables = [
+                "departments", "employees", "inspection", "locomotives",
+                "medical_examinations", "passengers", "repair", "routes",
+                "salary", "schedule", "stations", "teams",
+                "tickets", "trains"
+            ]
+        elif self.login_data['username'] == 'main_dispatcher':
+            self.tables = [
+                "routes", "schedule", "trains"
+            ]
+        elif self.login_data['username'] == 'repair_master':
+            self.tables = [
+                "routes", "schedule", "trains", "inspection", "repair"
+            ]
+        elif self.login_data['username'] == 'hr_director':
+            self.tables = [
+                "departments", "employees", "locomotives", "salary"
+            ]
+        elif self.login_data['username'] == 'cashier':
+            self.tables = [
+                "passengers", "routes", "schedule", "tickets"
+            ]
+        elif self.login_data['username'] == 'passanger':
+            self.tables = [
+                "routes", "schedule"
+            ]
+        elif self.login_data['username'] == 'medical_center':
+            self.tables = ["employees"]
+
         self.table_combo.addItems(self.tables)
         table_layout.addWidget(QLabel("Выберите таблицу для отображения:"))
         table_layout.addWidget(self.table_combo)
@@ -312,6 +383,7 @@ class TrainStationApp(QWidget):
                 user=self.login_data.get('username'),
                 password=self.login_data.get('password'),
                 db=getenv('DB'),
+                port=int(getenv('PORT')),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
@@ -444,6 +516,7 @@ class TrainStationApp(QWidget):
                 user=self.login_data.get('username'),
                 password=self.login_data.get('password'),
                 db=getenv('DB'),
+                port=int(getenv('PORT')),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
