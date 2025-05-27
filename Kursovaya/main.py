@@ -17,8 +17,61 @@ import sys
 load_dotenv()
 
 
-class TrainStationApp(QWidget):
+class LoginWindow(QWidget):
     def __init__(self):
+        super().__init__()
+        self.main_app = None
+        self.setWindowTitle("Вход в систему")
+        self.setGeometry(150, 150, 300, 200)
+
+        layout = QFormLayout()
+
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.Password)
+
+        self.username_combo = QComboBox()
+        self.usernames = [
+            "main_dispatcher", "repair_master", "administrator",
+            "hr_director", "cashier", "passanger", "medical_center"
+        ]
+        self.username_combo.addItems(self.usernames)
+
+        self.login_button = QPushButton("Войти")
+        self.login_button.clicked.connect(self.handle_login)
+
+        layout.addRow("Пароль:", self.password_input)
+        layout.addRow("Роль:", self.username_combo)
+        layout.addRow(self.login_button)
+
+        self.setLayout(layout)
+
+        self.login_data = {}
+
+    def handle_login(self):
+
+        password = self.password_input.text().strip()
+        username = self.username_combo.currentText()
+
+        if not username and not password:
+            QMessageBox.warning(self, "Ошибка входа", "Пожалуйста, заполните все поля.")
+            return
+
+        # Здесь можно вставить вашу проверку логина и пароля
+
+        self.login_data = {
+            "username": username,
+            "password": password,
+        }
+        self.accept_login()
+
+    def accept_login(self):
+        self.close()
+        self.main_app = TrainStationApp(self.login_data)
+        self.main_app.show()
+
+
+class TrainStationApp(QWidget):
+    def __init__(self, login_data):
         super().__init__()
         self.form_layout = None
         self.params_widgets = None
@@ -38,7 +91,8 @@ class TrainStationApp(QWidget):
         self.canvas3 = None
         self.chart_button = None
         self.charts_tab = None
-        self.setWindowTitle("Железнодорожная станция")
+        self.login_data = login_data  # {'username': ..., 'password': ...}
+        self.setWindowTitle(f"Железнодорожная станция — {self.login_data['username']}")
         self.setGeometry(100, 100, 1000, 700)
 
         self.tabs = QTabWidget()
@@ -91,8 +145,8 @@ class TrainStationApp(QWidget):
         try:
             conn = pymysql.connect(
                 host=getenv('HOST'),
-                user=getenv('USER'),
-                password=getenv('PASSWORD'),
+                user=self.login_data.get('username'),
+                password=self.login_data.get('password'),
                 db=getenv('DB'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
@@ -255,8 +309,8 @@ class TrainStationApp(QWidget):
         try:
             conn = pymysql.connect(
                 host=getenv('HOST'),
-                user=getenv('USER'),
-                password=getenv('PASSWORD'),
+                user=self.login_data.get('username'),
+                password=self.login_data.get('password'),
                 db=getenv('DB'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
@@ -387,8 +441,8 @@ class TrainStationApp(QWidget):
         try:
             conn = pymysql.connect(
                 host=getenv('HOST'),
-                user=getenv('USER'),
-                password=getenv('PASSWORD'),
+                user=self.login_data.get('username'),
+                password=self.login_data.get('password'),
                 db=getenv('DB'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
@@ -428,6 +482,8 @@ class TrainStationApp(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = TrainStationApp()
-    window.show()
+    login = LoginWindow()
+    login.show()
+    # window = TrainStationApp()
+    # window.show()
     sys.exit(app.exec_())
