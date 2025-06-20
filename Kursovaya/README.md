@@ -110,8 +110,6 @@ pip install -r requirements.txt
 HOST=localhost
 PORT=3306
 DB=train_station
-USER=your_username
-PASSWORD=your_password
 ```
 
 #### 4. Запуск проекта:
